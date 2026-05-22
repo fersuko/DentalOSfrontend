@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import "@workspace/ui/globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/context/AuthContext";
+import { WorkspaceProvider } from "@/context/WorkspaceContext";
 import { Toaster } from "@workspace/ui/components/sonner";
 import { TooltipProvider } from "@workspace/ui/components/tooltip";
 import { cn } from "@workspace/ui/lib/utils";
@@ -35,10 +36,12 @@ export default function RootLayout({
       <body>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>
-              {children}
-              <Toaster richColors position="top-right" />
-            </TooltipProvider>
+            <WorkspaceProvider>
+              <TooltipProvider>
+                {children}
+                <Toaster richColors position="top-right" />
+              </TooltipProvider>
+            </WorkspaceProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

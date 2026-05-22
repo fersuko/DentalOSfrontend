@@ -100,13 +100,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         secure: window.location.protocol === "https:",
       });
 
-      // Default tenant_id to 1 (can be adjusted later)
-      Cookies.set("tenant_id", "1", {
-        expires: 7,
-        sameSite: "Lax",
-        secure: window.location.protocol === "https:",
-      });
-
       // Cache a user profile derived from login details (detecting role from username for smart routing)
       const usernameLower = credentials.username.toLowerCase();
       let detectedRole: UserRole = "admin";

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { useWorkspace } from "@/context/WorkspaceContext";
 import { SidebarTrigger } from "@workspace/ui/components/sidebar";
 import { Separator } from "@workspace/ui/components/separator";
 import {
@@ -12,11 +13,13 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
-import { Bell, LogOut, HeartPulse } from "lucide-react";
+import { Bell, LogOut, HeartPulse, Building2 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
+import Link from "next/link";
 
 export function DoctorHeader() {
   const { user, logout } = useAuth();
+  const { activeWorkspace } = useWorkspace();
 
   const initials = user?.full_name
     ? user.full_name
@@ -38,6 +41,14 @@ export function DoctorHeader() {
         <h2 className="text-sm font-medium text-foreground">
           Portal Clínico · Dra/Dr. {user?.full_name?.split(" ")[0] ?? "Odontólogo"}
         </h2>
+        {activeWorkspace && (
+          <>
+            <Separator orientation="vertical" className="h-4" />
+            <span className="text-xs font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-0.5 rounded-full">
+              {activeWorkspace.name}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Actions */}
@@ -81,6 +92,15 @@ export function DoctorHeader() {
                 Odontólogo Clínico
               </Badge>
             </div>
+            <DropdownMenuSeparator />
+            {user?.role !== "superadmin" && (
+              <DropdownMenuItem asChild>
+                <Link href="/workspaces">
+                  <Building2 className="mr-2 h-4 w-4 text-purple-500" />
+                  Cambiar Clínica
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={logout}

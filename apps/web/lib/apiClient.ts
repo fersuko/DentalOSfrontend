@@ -28,9 +28,44 @@ apiClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Inject tenant-id header (default to 1)
-    const tenantId = Cookies.get("tenant_id") ?? "1";
-    config.headers["tenant-id"] = tenantId;
+    const tenantId = Cookies.get("tenant_id");
+    
+    // Check if this is an excluded url (config, profile, auth, workspaces selector)
+    const url = config.url ?? "";
+    const isExcluded = 
+      url.includes("/auth/") || 
+      url.includes("/workspaces/") || 
+      url.includes("/users/me") || 
+      url.includes("/settings") || 
+      url.includes("/profile");
+      
+    let isSuperAdmin = false;
+    if (typeof window !== "undefined") {
+      try {
+        const userProfile = localStorage.getItem("user_profile");
+        if (userProfile) {
+          const parsedUser = JSON.parse(userProfile);
+          if (parsedUser.role === "superadmin") {
+            isSuperAdmin = true;
+          }
+        }
+      } catch {}
+    }
+
+    if (!isExcluded && token && !isSuperAdmin) {
+      if (!tenantId) {
+        // Dispatch the custom event and block the request
+        if (typeof window !== "undefined") {
+          const event = new CustomEvent("WorkspaceContextMissing");
+          window.dispatchEvent(event);
+        }
+        // Reject request before sending
+        return Promise.reject(new Error("WorkspaceContextMissing"));
+      }
+      config.headers["tenant-id"] = tenantId;
+    } else if (tenantId) {
+      config.headers["tenant-id"] = tenantId;
+    }
     
     return config;
   },
@@ -61,6 +96,16 @@ apiClient.interceptors.response.use(
     const originalRequest = error.config;
     const url = originalRequest?.url ?? "";
     const method = originalRequest?.method?.toLowerCase() ?? "";
+
+    if (error.response?.status === 403) {
+      // 403 Forbidden: unauthorized workspace access — clear active workspace and redirect
+      Cookies.remove("tenant_id");
+      localStorage.removeItem("active_workspace");
+      if (typeof window !== "undefined") {
+        window.location.href = "/workspaces";
+      }
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401) {
       // Token expired or invalid — clean up and redirect to login
@@ -185,6 +230,50 @@ apiClient.interceptors.response.use(
         });
       }
       
+      // GET /api/v1/workspaces/mine
+      if (url.includes("/api/v1/workspaces/mine") && method === "get") {
+        console.log("[DEV] Usando Mock de Workspaces");
+        let workspaces: any[] = [];
+        const userProfileStr = typeof window !== "undefined" ? localStorage.getItem("user_profile") : null;
+        if (userProfileStr) {
+          try {
+            const user = JSON.parse(userProfileStr);
+            if (user.email === "doctor@test.com" || user.role === "doctor") {
+              workspaces = [
+                { id: 101, name: "Mi Consultorio Privado", role: "doctor", status: "active" },
+                { id: 102, name: "Hospital Ángeles", role: "doctor", status: "active" },
+              ];
+            } else if (user.email === "admin@test.com" || user.role === "admin") {
+              workspaces = [
+                { id: 201, name: "Clínica Dental Ruiz", role: "admin", status: "active" },
+              ];
+            } else if (user.role === "superadmin") {
+              workspaces = [
+                { id: 999, name: "Administración Global SaaS", role: "superadmin", status: "active" }
+              ];
+            } else {
+              workspaces = [
+                { id: 1, name: "Clínica Dental DentalOS", role: "admin", status: "active" }
+              ];
+            }
+          } catch {
+            workspaces = [
+              { id: 1, name: "Clínica Dental DentalOS", role: "admin", status: "active" }
+            ];
+          }
+        } else {
+          workspaces = [
+            { id: 1, name: "Clínica Dental DentalOS", role: "admin", status: "active" }
+          ];
+        }
+        return Promise.resolve({
+          status: 200,
+          data: workspaces,
+          headers: {},
+          config: originalRequest,
+        });
+      }
+
       // GET /api/v1/treatments/mine/ fallback
       if (url.includes("/api/v1/treatments/mine/") && method === "get") {
         return Promise.resolve({

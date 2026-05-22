@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
+import { useWorkspace } from "@/context/WorkspaceContext";
 import { SidebarTrigger } from "@workspace/ui/components/sidebar";
 import { Separator } from "@workspace/ui/components/separator";
 import {
@@ -12,12 +13,13 @@ import {
 } from "@workspace/ui/components/dropdown-menu";
 import { Avatar, AvatarFallback } from "@workspace/ui/components/avatar";
 import { Badge } from "@workspace/ui/components/badge";
-import { Bell, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { Bell, LogOut, Settings, User as UserIcon, Building2 } from "lucide-react";
 import { Button } from "@workspace/ui/components/button";
 import Link from "next/link";
 
 export function DashboardHeader() {
   const { user, logout } = useAuth();
+  const { activeWorkspace } = useWorkspace();
 
   const initials = user?.full_name
     ? user.full_name
@@ -41,10 +43,18 @@ export function DashboardHeader() {
       <Separator orientation="vertical" className="mr-2 h-4" />
 
       {/* Breadcrumb / title area */}
-      <div className="flex-1">
+      <div className="flex-1 flex items-center gap-2">
         <h2 className="text-sm font-medium text-foreground">
           Bienvenido, {user?.full_name?.split(" ")[0] ?? "Usuario"}
         </h2>
+        {activeWorkspace && (
+          <>
+            <Separator orientation="vertical" className="h-4" />
+            <span className="text-xs font-semibold text-muted-foreground bg-secondary px-2.5 py-0.5 rounded-full">
+              {activeWorkspace.name}
+            </span>
+          </>
+        )}
       </div>
 
       {/* Actions */}
@@ -103,6 +113,14 @@ export function DashboardHeader() {
                 Mi perfil
               </Link>
             </DropdownMenuItem>
+            {user?.role !== "superadmin" && (
+              <DropdownMenuItem asChild>
+                <Link href="/workspaces">
+                  <Building2 className="mr-2 h-4 w-4 text-cyan-500" />
+                  Cambiar Clínica
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={logout}
